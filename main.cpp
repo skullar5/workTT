@@ -1,4 +1,4 @@
-﻿#include <QApplication>
+#include <QApplication>
 #include <QMainWindow>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -81,7 +81,7 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
     dashboardPage->setInventoryTable(sharedInventoryTable); // Set the shared inventory table for the dashboard
 
 
-    InventoryPage* inventoryPage = new InventoryPage(); // Create the inventory page widget
+    inventoryPage = new InventoryPage(); // Create the inventory page widget
     inventoryPage->setTabWidget(tabWidget); // Set the tab widget for the inventory page
     inventoryPage->setInventoryTable(sharedInventoryTable); // Set the shared inventory table for the inventory page
     //inventoryPage->setCurrentUserId(currentUserId);
@@ -795,14 +795,10 @@ void MainWindow::setCurrentUserId(const QString& id) {
     dashboardPage->setCurrentUserId(id);
     dashboardPage->loadMonthlyRevenueData(id);
 
-    //if (budgetPage) {
-       // budgetPage->setCurrentUserId(id);
-        //budgetPage->loadData();  // ✅ load budget data for this user
-    //}
+    inventoryPage->setCurrentUserId(id);    // Set the user ID for inventory
+    inventoryPage->loadInventoryData(id);   // Load inventory data for this user
 
-    //inventoryPage->loadInventoryData(id);
-
-    loadTransactions(id);  // load transactions when user logs in
+    loadTransactions(id);  // Load transactions
 }
 /**
  * @brief Searches for a transaction by ID.
@@ -1103,9 +1099,8 @@ void MainWindow::loadTransactions(const QString& userId) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    saveTransactions(); //  Save transaction data before closing
-
-
+    saveTransactions();         // Save transaction data
+    inventoryPage->saveInventoryData();  // Save inventory data
     QMainWindow::closeEvent(event);
 }
 
@@ -1133,12 +1128,12 @@ int main(int argc, char* argv[]) {
 
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&authSystem]() {
         authSystem.saveUsersToFile();
-        });
+    });
 
-    MainWindow mainWindow(&authSystem);                 // ✅ create it here
-    LoginPage loginPage(&authSystem, &mainWindow);      // ✅ pass it to LoginPage
+    MainWindow mainWindow(&authSystem);
+    LoginPage loginPage(&authSystem, &mainWindow);
 
-    loginPage.show();                                   // show login page first
+    loginPage.show();
 
     return app.exec();
 }

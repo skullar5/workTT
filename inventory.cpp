@@ -1,4 +1,4 @@
-﻿#include "inventory.h"
+#include "inventory.h"
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -7,28 +7,17 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonObject>
-
+#include <QStandardPaths>
+#include <QDir>
+#include <QDebug>
 
 /**
- * @class InventoryPage
- * @brief Provides a management for the inventory UI.
+ * @brief Constructs the InventoryPage widget.
+ * @param parent Pointer to the parent QWidget (default nullptr).
  *
- * This class has elements to use for functionalities of the inventory management.
- * It handles adding, removing, and updating inventory items.
- * The class will interact with the dashboard as a shared table.
- *
- * @author Maneet Chahal
+ * Initializes the InventoryPage instance and prepares it for UI setup.
  */
-
- /**
-  * @brief Constructs the InventoryPage widget.
-  * @param parent Pointer to the parent QWidget (default nullptr).
-  *
-  * Initializes the InventoryPage instance and prepares it for UI setup.
-  */
-InventoryPage::InventoryPage(QWidget* parent) : QWidget(parent)
-{
-}
+InventoryPage::InventoryPage(QWidget* parent) : QWidget(parent) {}
 
 /**
  * @brief Sets the tab widget to enable navigation between tabs.
@@ -43,11 +32,10 @@ void InventoryPage::setTabWidget(QTabWidget* tabs) {
 /**
  * @brief Sets up the UI components for inventory management.
  *
- * Initalized the layout of the inventory and inpput fields for the user to interact with.
- * Also includes action buttons and integrated the shared inventory display table.
+ * Initializes the layout of the inventory and input fields for the user to interact with.
+ * Also includes action buttons and integrates the shared inventory display table.
  */
-void InventoryPage::setupUI()
-{
+void InventoryPage::setupUI() {
     // Title label for the main layout of the inventory section
     QVBoxLayout* mainLayout = new QVBoxLayout();
     this->setLayout(mainLayout);
@@ -79,10 +67,10 @@ void InventoryPage::setupUI()
     mainLayout->addLayout(inputLayout);
 
     // Action buttons for the operations of the inventory
-    addItemButton = new QPushButton("Add Item", this); // button for adding item
-    removeItemButton = new QPushButton("Remove Selected Item", this); // button to remove item
-    updateItemButton = new QPushButton("Update Selected Item", this); // button to update item
-    backButton = new QPushButton("Back to Dashboard", this); // button to go back to dashboard
+    addItemButton = new QPushButton("Add Item", this);
+    removeItemButton = new QPushButton("Remove Selected Item", this);
+    updateItemButton = new QPushButton("Update Selected Item", this);
+    backButton = new QPushButton("Back to Dashboard", this);
 
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addWidget(addItemButton);
@@ -93,6 +81,7 @@ void InventoryPage::setupUI()
 
     // Inventory table integration for the widget
     if (sharedInventoryTable) {
+        sharedInventoryTable->setHorizontalHeaderLabels({"Item Name", "Quantity", "Price"});
         mainLayout->addWidget(sharedInventoryTable);
     }
 
@@ -102,27 +91,24 @@ void InventoryPage::setupUI()
     connect(updateItemButton, &QPushButton::clicked, this, &InventoryPage::updateItem);
     connect(backButton, &QPushButton::clicked, [this]() {
         if (tabWidget) {
-            tabWidget->setCurrentIndex(1);
+            tabWidget->setCurrentIndex(1); // Back to Dashboard
         }
-        });
-
+    });
 }
 
 /**
  * @brief Adds a new item to the inventory table.
  *
  * Validates the user input and then updates the table accordingly.
- * Clear the input fields after successful addiction, and then display a warning if not complete.
+ * Clears the input fields after successful addition, and then displays a warning if not complete.
  */
-void InventoryPage::addItem()
-{
-    // get input from user
+void InventoryPage::addItem() {
     qDebug() << "Add item clicked!";
     QString name = itemNameInput->text();
     QString quantity = itemQuantityInput->text();
     QString price = priceInput->text();
 
-    // validate the input fields
+    // Validate the input fields
     if (name.isEmpty() || quantity.isEmpty() || price.isEmpty()) {
         QMessageBox::warning(this, "Input Error", "Please fill in all fields.");
         return;
@@ -130,68 +116,51 @@ void InventoryPage::addItem()
 
     if (!sharedInventoryTable) return;
 
-    // add new row to the inventory table
+    // Add new row to the inventory table
     int row = sharedInventoryTable->rowCount();
     sharedInventoryTable->insertRow(row);
 
-    // populate the table with the new data
+    // Populate the table with the new data
     sharedInventoryTable->setItem(row, 0, new QTableWidgetItem(name));
     sharedInventoryTable->setItem(row, 1, new QTableWidgetItem(quantity));
     sharedInventoryTable->setItem(row, 2, new QTableWidgetItem("$" + price));
 
-    // clear the input fields after item is added
+    // Clear the input fields after item is added
     itemNameInput->clear();
     itemQuantityInput->clear();
     priceInput->clear();
 
-    /*if (tabWidget) {
-        tabWidget->setCurrentIndex(0); // switch to dashboard
-    }*/
-    //saveInventoryData();
-
+    saveInventoryData(); // Save after adding
 }
 
 /**
  * @brief Removes the selected item from the inventory table.
  *
- * Ensures that the item selected before removal and then will alert the user with a warning if there is no selection.
+ * Ensures that an item is selected before removal and then will alert the user with a warning if there is no selection.
  */
-void InventoryPage::removeItem()
-{
-    // get user input
+void InventoryPage::removeItem() {
     qDebug() << "Remove item clicked!";
     if (!sharedInventoryTable) return;
-    int currentRow = sharedInventoryTable->currentRow(); // determined the selected row
-    if (currentRow >= 0) { // remove if valid
+    int currentRow = sharedInventoryTable->currentRow();
+    if (currentRow >= 0) {
         sharedInventoryTable->removeRow(currentRow);
-    }
-    // otherwise if not valid give warning message
-    else {
+        saveInventoryData(); // Save after removing
+    } else {
         QMessageBox::warning(this, "Selection Error", "Please select an item to remove.");
     }
-
-    /*if (tabWidget) {
-        tabWidget->setCurrentIndex(0); // switch to dashboard
-    }*/
-    //saveInventoryData();
-
-
 }
 
 /**
  * @brief Updates the selected inventory item's details.
  *
- * Checks for the selection validity and updates the selected item's details if inputs are provided.
- * Clears the input fields post-update and alerts if no items is selected.
+ * Checks for selection validity and updates the selected item's details if inputs are provided.
+ * Clears the input fields post-update and alerts if no item is selected.
  */
-void InventoryPage::updateItem()
-{
-    // determine which one to update
+void InventoryPage::updateItem() {
     qDebug() << "Update item clicked!";
     if (!sharedInventoryTable) return;
     int currentRow = sharedInventoryTable->currentRow();
 
-    // update the selected row with the user inputs
     if (currentRow >= 0) {
         QString name = itemNameInput->text();
         QString quantity = itemQuantityInput->text();
@@ -203,23 +172,15 @@ void InventoryPage::updateItem()
         if (!price.isEmpty())
             sharedInventoryTable->setItem(currentRow, 2, new QTableWidgetItem("$" + price));
 
-        // clear input fields after updating
+        // Clear input fields after updating
         itemNameInput->clear();
         itemQuantityInput->clear();
         priceInput->clear();
-    }
 
-    // give user warning message
-    else {
+        saveInventoryData(); // Save after updating
+    } else {
         QMessageBox::warning(this, "Selection Error", "Please select an item to update.");
     }
-
-    /*if (tabWidget) {
-        tabWidget->setCurrentIndex(0); // switch to dashboard
-    }*/
-    //saveInventoryData();
-
-
 }
 
 /**
@@ -245,20 +206,23 @@ void InventoryPage::setInventoryTable(QTableWidget* table) {
     }
 }
 
+/**
+ * @brief Sets the current user ID for inventory data management.
+ * @param id The user ID as a QString.
+ */
+void InventoryPage::setCurrentUserId(const QString& id) {
+    currentUserId = id;
+}
 
 /**
- * @brief Destructor to clear up allocated resources.
+ * @brief Saves the current inventory data to a JSON file.
  *
- * Ensures all dynamically allocated components are cleaned up to avoid memory leaks.
+ * Stores the inventory data in a user-specific file in a standard location.
  */
-InventoryPage::~InventoryPage() {
-}
-/*
 void InventoryPage::saveInventoryData() {
     if (currentUserId.isEmpty() || !sharedInventoryTable) return;
 
     QJsonArray inventoryArray;
-
     for (int row = 0; row < sharedInventoryTable->rowCount(); ++row) {
         QJsonObject obj;
         obj["name"] = sharedInventoryTable->item(row, 0)->text();
@@ -270,25 +234,56 @@ void InventoryPage::saveInventoryData() {
     QJsonObject root;
     root["inventory"] = inventoryArray;
 
-    QFile file("data/" + currentUserId + "_inventory.json");
+    // Use a consistent location across computers
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+                      "/BusinessManagementSystem/data";
+    
+    QDir dir;
+    if (!dir.exists(dataPath)) {
+        dir.mkpath(dataPath);
+    }
+
+    QString filePath = dataPath + "/" + currentUserId + "_inventory.json";
+    QFile file(filePath);
+    
     if (file.open(QIODevice::WriteOnly)) {
         file.write(QJsonDocument(root).toJson());
         file.close();
+        qDebug() << "Inventory saved to:" << filePath;
+    } else {
+        qDebug() << "Failed to save inventory:" << file.errorString();
     }
-}void InventoryPage::loadInventoryData(const QString& userId) {
-    currentUserId = userId;
+}
 
-    // ✅ SAFETY CHECK to avoid crash
+/**
+ * @brief Loads inventory data from a JSON file for the specified user.
+ * @param userId The ID of the user whose inventory data should be loaded.
+ */
+void InventoryPage::loadInventoryData(const QString& userId) {
+    currentUserId = userId;
+    
     if (!sharedInventoryTable) {
-        qDebug() << "sharedInventoryTable is null! Please call setInventoryTable() first.";
+        qDebug() << "sharedInventoryTable is null!";
         return;
     }
 
-    QFile file("data/" + userId + "_inventory.json");
-    if (!file.open(QIODevice::ReadOnly)) return;
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
+                      "/BusinessManagementSystem/data";
+    QString filePath = dataPath + "/" + userId + "_inventory.json";
+    QFile file(filePath);
 
-    sharedInventoryTable->setRowCount(0); // Clear current rows
+    if (!file.exists()) {
+        qDebug() << "No inventory file found for user:" << userId;
+        return;
+    }
 
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open inventory file:" << file.errorString();
+        return;
+    }
+
+    sharedInventoryTable->setRowCount(0);
+    
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
 
@@ -301,9 +296,12 @@ void InventoryPage::saveInventoryData() {
         sharedInventoryTable->setItem(row, 1, new QTableWidgetItem(obj["quantity"].toString()));
         sharedInventoryTable->setItem(row, 2, new QTableWidgetItem(obj["price"].toString()));
     }
+    qDebug() << "Loaded" << inventoryArray.size() << "inventory items";
+}
 
-}*/
-
-/*void InventoryPage::setCurrentUserId(const QString& id) {
-    currentUserId = id;
-}*/
+/**
+ * @brief Destructor to clean up allocated resources.
+ *
+ * Ensures all dynamically allocated components are cleaned up to avoid memory leaks.
+ */
+InventoryPage::~InventoryPage() {}

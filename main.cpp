@@ -790,15 +790,58 @@ double MainWindow::currencyConvert(QString from, QString to, double amount) {
     return amount * rate;
 }
 void MainWindow::setCurrentUserId(const QString& id) {
+    qDebug() << "Setting user ID in MainWindow:" << id;
     currentUserId = id;
 
-    dashboardPage->setCurrentUserId(id);
-    dashboardPage->loadMonthlyRevenueData(id);
+    // Set user ID and load data for each component
+    if (dashboardPage) {
+        dashboardPage->setCurrentUserId(id);
+        dashboardPage->loadMonthlyRevenueData(id);
+    }
 
-    inventoryPage->setCurrentUserId(id);    // Set the user ID for inventory
-    inventoryPage->loadInventoryData(id);   // Load inventory data for this user
+    if (inventoryPage) {
+        inventoryPage->setCurrentUserId(id);    
+        inventoryPage->loadInventoryData(id);   
+    }
 
-    loadTransactions(id);  // Load transactions
+    loadTransactions(id);  
+    
+    // Add null check and defensive programming for BudgetPage
+    if (budgetPage) {
+        try {
+            qDebug() << "Setting user ID in BudgetPage:" << id;
+            budgetPage->setCurrentUserId(id);
+            
+            // Ensure directory exists before loading
+            QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/BusinessManagementSystem/data";
+            QDir dir;
+            if (!dir.exists(dataPath)) {
+                bool created = dir.mkpath(dataPath);
+                qDebug() << "Created data directory:" << created;
+            }
+            
+            // Load budget data with more detailed logging
+            qDebug() << "Attempting to load budget data for user:" << id;
+            bool loadResult = budgetPage->loadBudgetData(id);
+            
+            if (loadResult) {
+                qDebug() << "Successfully loaded budget data for user:" << id;
+            } else {
+                qDebug() << "No existing budget data found for user:" << id;
+                
+                // Attempt to create and save default budget
+                qDebug() << "Creating default budget data";
+                
+                // Save initial budget data to ensure a file exists
+                bool saveResult = budgetPage->saveBudgetData(id);
+                qDebug() << "Initial budget data save result:" << saveResult;
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception in budget loading:" << e.what();
+        } catch (...) {
+            qDebug() << "Unknown exception in budget loading";
+        }
+    }
 }
 /**
  * @brief Searches for a transaction by ID.
@@ -1098,11 +1141,38 @@ void MainWindow::loadTransactions(const QString& userId) {
     }
 }
 
+
+
 void MainWindow::closeEvent(QCloseEvent* event) {
-    saveTransactions();         // Save transaction data
-    inventoryPage->saveInventoryData();  // Save inventory data
+    try {
+        saveTransactions();         // Save transaction data
+        
+        try {
+            inventoryPage->saveInventoryData();  // Save inventory data
+        } catch (...) {
+            qDebug() << "Error saving inventory data";
+        }
+        
+        try {
+            if (budgetPage && !currentUserId.isEmpty()) {
+                qDebug() << "Saving budget data on application close for user:" << currentUserId;
+                budgetPage->saveBudgetData(currentUserId);
+                qDebug() << "Budget data saved successfully on close";
+            }
+        } catch (const std::exception& e) {
+            qDebug() << "Exception saving budget data:" << e.what();
+        } catch (...) {
+            qDebug() << "Unknown exception saving budget data";
+        }
+        
+    } catch (...) {
+        qDebug() << "Error during closeEvent";
+    }
+    
     QMainWindow::closeEvent(event);
 }
+
+
 
 
 

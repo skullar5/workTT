@@ -385,17 +385,52 @@ QTableWidget* Dashboard::getInventoryTable() const
  *
  * Cleans up all dynamically allocated chart resources
  */
+/**
+ * @brief Dashboard destructor
+ *
+ * Cleans up all dynamically allocated chart resources
+ */
 Dashboard::~Dashboard()
 {
-    delete barChart;
-    delete lineChart;
-    delete pieChart;
-    delete barSeries;
-    delete lineSeries;
-    delete pieSeries;
-    delete barChartView;
-    delete lineChartView;
-    delete pieChartView;
+    qDebug() << "Dashboard destructor started";
+    
+    try {
+        // Safely disconnect from any signal connections
+        this->disconnect();
+        
+        // Null check all member pointers before use
+        if (dashboardTabWidget) {
+            disconnect(dashboardTabWidget, nullptr, this, nullptr);
+            dashboardTabWidget = nullptr;
+        }
+        
+        // Set any inventory table pointer to null to avoid accessing it
+        if (inventoryTable) {
+            inventoryTable = nullptr;
+        }
+        
+        qDebug() << "Dashboard destructor - starting chart cleanup";
+        
+        // Just null all pointers without attempting to delete
+        // Qt's parent-child mechanism will handle the memory cleanup
+        barChart = nullptr;
+        lineChart = nullptr;
+        pieChart = nullptr;
+        barSeries = nullptr;
+        lineSeries = nullptr;
+        pieSeries = nullptr;
+        barChartView = nullptr;
+        lineChartView = nullptr;
+        pieChartView = nullptr;
+        
+        qDebug() << "Dashboard destructor completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in Dashboard destructor:" << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in Dashboard destructor";
+    }
 }
 
 /**

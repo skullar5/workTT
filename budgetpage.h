@@ -1,20 +1,22 @@
 #ifndef BUDGETPAGE_H
 #define BUDGETPAGE_H
 
-
+#include <QStandardPaths>
+#include <QDir>
+#include <QJsonDocument>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QLabel>
-// #include <QVBoxLayout>
-// #include <QMainWindow>
-// #include <QWidget>
-// #include <QComboBox>
-// #include <QDoubleSpinBox>
-// #include <QPushButton>
-// #include <QJsonObject>
-// #include <QJsonArray>
-// #include <QChart>
-// #include <QLineEdit>
+#include <QVBoxLayout>
+#include <QMainWindow>
+#include <QWidget>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QPushButton>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QChart>
+#include <QLineEdit>
 #include <QMessageBox>
 #include <QLineSeries>
 #include <QChartView>
@@ -23,8 +25,17 @@
 #include <QBarCategoryAxis>
 #include <QValueAxis>
 #include <QFileDialog>
+#include <QStandardPaths>
+#include <QDir>
+#include <QJsonDocument>
+#include <QDebug>
 #include "budgetpagebudget.h"
 #include "budgetpageexpenses.h"
+
+#ifndef SHOW_DEBUG_LOGS
+#define SHOW_DEBUG_LOGS true
+#endif
+
 /**
 * This is the UI class for the budgetpage
 * \n it allows users to pick a budget period, set a budget for that period, and add expenses
@@ -45,7 +56,7 @@ public:
      * @author - Katherine R
      */
     explicit BudgetPage(QWidget* parent = nullptr);
-
+    
     /**
      * @brief destructor for budgetpage
       * @author Katherine R
@@ -97,6 +108,20 @@ public:
      * @param userId qstring id
      */
     void setCurrentUserId(const QString& userId);
+
+    /**
+     * @brief Saves budget data to a JSON file for the current user
+     * @param userId The ID of the current user
+     * @return bool True if saved successfully, false otherwise
+     */
+    bool saveBudgetData(const QString& userId);
+
+    /**
+     * @brief Loads budget data from a JSON file for the current user
+     * @param userId The ID of the current user
+     * @return bool True if loaded successfully, false otherwise
+     */
+    bool loadBudgetData(const QString& userId);
 
 public slots:
     /**

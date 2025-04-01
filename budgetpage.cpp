@@ -111,7 +111,13 @@ void BudgetPage::getJSONBudget(const QJsonObject& budget) {
         }
     }
 
-    this->budgetPeriod_Label->setText(budget.value("Budget Period").toString());
+    // More defensive check for Budget Period
+    if (budget.contains("Budget Period") && budgetPeriod_Label) {
+        QString periodText = budget.value("Budget Period").toString();
+        if (!periodText.isEmpty()) {
+            this->budgetPeriod_Label->setText(periodText);
+        }
+    }
 }
 
 /**
@@ -126,6 +132,12 @@ void BudgetPage::onBudgetChangeSlot(double budget) {
         qDebug() << "Changed Budget - " << budget;
     }
     calculateRemainingBudget();
+    
+    // Force immediate save whenever a budget value changes
+    if (!userId.isEmpty()) {
+        qDebug() << "Auto-saving after budget change";
+        saveBudgetData(userId);
+    }
 }
 
 /**
@@ -141,6 +153,11 @@ void BudgetPage::onBudgetGoalChangedSlot(double goal) {
     }
 
     calculateRemainingBudget();
+    
+    // Auto-save when budget goal changes
+    if (!userId.isEmpty()) {
+        saveBudgetData(userId);
+    }
 }
 
 
@@ -161,6 +178,11 @@ void BudgetPage::onExpenseChangedSlot(double delta) {
         "Total Expenses: $0" + QString::number(budgets.at(budgetPeriodIndex)->getTotalExpenses()));
     //updates the total expense text
     calculateRemainingBudget();
+    
+    // Auto-save when expenses change
+    if (!userId.isEmpty()) {
+        saveBudgetData(userId);
+    }
 }
 
 /**
@@ -490,11 +512,20 @@ double BudgetPage::getSurplusGoal() {
 }
 
 /**
-     * @brief stter for user id
-     * @param userId qstring id
-     */
+ * @brief setter for user id
+ * @param userId qstring id
+ */
 void BudgetPage::setCurrentUserId(const QString& userId) {
-    this->userId = QString(userId);
+    try {
+        qDebug() << "Setting user ID in BudgetPage:" << userId;
+        // Don't use QString constructor here - just use direct assignment
+        this->userId = userId;
+        qDebug() << "User ID set successfully in BudgetPage";
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in setCurrentUserId:" << e.what();
+    } catch (...) {
+        qDebug() << "Unknown exception in setCurrentUserId";
+    }
 }
 
 /**
@@ -668,6 +699,11 @@ void BudgetPage::newExpense() {
         [this, tempExpense]() {
             deleteExpense(tempExpense);
         });
+    
+    // Auto-save when adding a new expense
+    if (!userId.isEmpty()) {
+        saveBudgetData(userId);
+    }
 }
 
 
@@ -687,6 +723,11 @@ void BudgetPage::deleteExpense(BudgetPageExpenses* toDelete) {
     budgets[budgetPeriodIndex]->getExpenses()->at(index)->deleteLater();
     budgets[budgetPeriodIndex]->getExpenses()->removeAt(index);
     onExpenseChangedSlot(-tempExpenseTotal); //removes from total expenses
+    
+    // Auto-save when deleting an expense
+    if (!userId.isEmpty()) {
+        saveBudgetData(userId);
+    }
 }
 
 
@@ -783,32 +824,122 @@ void BudgetPage::updateBarGraph() {
   * @author Katherine R
  */
 BudgetPage::~BudgetPage() {
-    delete budgetSelector_SpinBox;
-    delete budgetSelector_Label;
-    delete budgetPeriod_QuarterlyComboBox;
-    delete budgetPeriod_TypeComboBox;
-    delete budgetPeriod_MonthlyComboBox;
-    delete budgetSelector_VBox;
-    delete budgetSelector_group;
-    // delete budgetSelector_SpinBox;
-
-    delete expenses_vbox;
-    delete expenses_totalExpensesLabel;
-    delete expenses_remainingBudgetLabel;
-    delete expenses_addExpenseButton;
-    delete expenses_Group;
-
-    budgets.clear();
-    delete barChart_Widget;
-    // delete barChart_Value;
-    // delete barChart_Neg;
-    delete barChart_series;
-    delete barChart_yAxis;
-    delete barChart_xAxis;
-    delete barChart_chart;
-    delete barChart_chartView;
-    delete barGraph_updateButton;
-    // delete barChart_GroupVbox;
+    qDebug() << "BudgetPage destructor started";
+    
+    try {
+        // Safely disconnect signals first
+        this->disconnect();
+        
+        // Clear budgets vector first to avoid potential dangling pointers
+        if (!budgets.isEmpty()) {
+            budgets.clear();
+        }
+        
+        // Delete UI elements with null checks
+        if (budgetSelector_SpinBox) {
+            delete budgetSelector_SpinBox;
+            budgetSelector_SpinBox = nullptr;
+        }
+        
+        if (budgetSelector_Label) {
+            delete budgetSelector_Label;
+            budgetSelector_Label = nullptr;
+        }
+        
+        if (budgetPeriod_QuarterlyComboBox) {
+            delete budgetPeriod_QuarterlyComboBox;
+            budgetPeriod_QuarterlyComboBox = nullptr;
+        }
+        
+        if (budgetPeriod_TypeComboBox) {
+            delete budgetPeriod_TypeComboBox;
+            budgetPeriod_TypeComboBox = nullptr;
+        }
+        
+        if (budgetPeriod_MonthlyComboBox) {
+            delete budgetPeriod_MonthlyComboBox;
+            budgetPeriod_MonthlyComboBox = nullptr;
+        }
+        
+        if (budgetSelector_VBox) {
+            delete budgetSelector_VBox;
+            budgetSelector_VBox = nullptr;
+        }
+        
+        if (budgetSelector_group) {
+            delete budgetSelector_group;
+            budgetSelector_group = nullptr;
+        }
+        
+        if (expenses_vbox) {
+            delete expenses_vbox;
+            expenses_vbox = nullptr;
+        }
+        
+        if (expenses_totalExpensesLabel) {
+            delete expenses_totalExpensesLabel;
+            expenses_totalExpensesLabel = nullptr;
+        }
+        
+        if (expenses_remainingBudgetLabel) {
+            delete expenses_remainingBudgetLabel;
+            expenses_remainingBudgetLabel = nullptr;
+        }
+        
+        if (expenses_addExpenseButton) {
+            delete expenses_addExpenseButton;
+            expenses_addExpenseButton = nullptr;
+        }
+        
+        if (expenses_Group) {
+            delete expenses_Group;
+            expenses_Group = nullptr;
+        }
+        
+        // Delete chart components with null checks
+        if (barChart_Widget) {
+            delete barChart_Widget;
+            barChart_Widget = nullptr;
+        }
+        
+        if (barChart_series) {
+            delete barChart_series;
+            barChart_series = nullptr;
+        }
+        
+        if (barChart_yAxis) {
+            delete barChart_yAxis;
+            barChart_yAxis = nullptr;
+        }
+        
+        if (barChart_xAxis) {
+            delete barChart_xAxis;
+            barChart_xAxis = nullptr;
+        }
+        
+        if (barChart_chart) {
+            delete barChart_chart;
+            barChart_chart = nullptr;
+        }
+        
+        if (barChart_chartView) {
+            delete barChart_chartView;
+            barChart_chartView = nullptr;
+        }
+        
+        if (barGraph_updateButton) {
+            delete barGraph_updateButton;
+            barGraph_updateButton = nullptr;
+        }
+        
+        qDebug() << "BudgetPage destructor completed successfully";
+    }
+    catch (const std::exception& e) {
+        qDebug() << "Exception in BudgetPage destructor:" << e.what();
+    }
+    catch (...) {
+        qDebug() << "Unknown exception in BudgetPage destructor";
+    }
 }
 
 /**
@@ -935,5 +1066,156 @@ void BudgetPage::importCSV() {
         QMessageBox::StandardButton warning = QMessageBox::critical(this, "warning", "improper csv format!",
             QMessageBox::Ok);
         return;
+    }
+}
+/**
+ * @brief Saves budget data to a JSON file for the current user
+ * @param userId The ID of the current user
+ * @return bool True if saved successfully, false otherwise
+ */
+// Modify BudgetPage::saveBudgetData method to be more robust
+bool BudgetPage::saveBudgetData(const QString& userId) {
+    if (userId.isEmpty()) {
+        if (SHOW_DEBUG_LOGS) {
+            qDebug() << "Cannot save budget data: User ID is empty";
+        }
+        return false;
+    }
+    
+    try {
+        qDebug() << "Starting budget data save for user:" << userId;
+        
+        // Get the JSON data from the budget
+        QJsonObject budgetData = to_JSON();
+        
+        // Add budget period to JSON if budgetPeriod_Label is valid
+        if (budgetPeriod_Label) {
+            budgetData.insert("Budget Period", budgetPeriod_Label->text());
+        }
+        
+        // Use a consistent location across computers - AppDataLocation is platform-specific
+        QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/BusinessManagementSystem/data";
+        
+        // Ensure data directory exists
+        QDir dir;
+        if (!dir.exists(dataPath)) {
+            bool created = dir.mkpath(dataPath);
+            if (!created) {
+                qDebug() << "Failed to create data directory at:" << dataPath;
+                return false;
+            }
+        }
+        
+        // Save the file
+        QString filePath = dataPath + "/" + userId + "_budget.json";
+        QFile file(filePath);
+        
+        if (file.open(QIODevice::WriteOnly)) {
+            QByteArray jsonData = QJsonDocument(budgetData).toJson();
+            qint64 bytesWritten = file.write(jsonData);
+            file.close();
+            
+            if (bytesWritten == jsonData.size()) {
+                qDebug() << "Successfully saved budget data to:" << filePath;
+                return true;
+            } else {
+                qDebug() << "Failed to write all data. Written:" << bytesWritten << "Expected:" << jsonData.size();
+                return false;
+            }
+        } else {
+            qDebug() << "Failed to open file for writing:" << filePath;
+            qDebug() << "Error:" << file.errorString();
+            return false;
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in saveBudgetData:" << e.what();
+        return false;
+    } catch (...) {
+        qDebug() << "Unknown exception in saveBudgetData";
+        return false;
+    }
+}
+
+/**
+ * @brief Loads budget data from a JSON file for the current user
+ * @param userId The ID of the current user
+ * @return bool True if loaded successfully, false otherwise
+ */
+bool BudgetPage::loadBudgetData(const QString& userId) {
+    try {
+        qDebug() << "BudgetPage::loadBudgetData - Starting for user:" << userId;
+        
+        if (userId.isEmpty()) {
+            qDebug() << "ERROR: Cannot load budget data: User ID is empty";
+            return false;
+        }
+
+        // Use the same location as in saveBudgetData
+        QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/BusinessManagementSystem/data";
+        qDebug() << "Data path:" << dataPath;
+        
+        QString filePath = dataPath + "/" + userId + "_budget.json";
+        qDebug() << "Full file path:" << filePath;
+        
+        QFile file(filePath);
+
+        if (!file.exists()) {
+            qDebug() << "Budget file does not exist for user:" << userId;
+            return false;
+        }
+
+        if (!file.open(QIODevice::ReadOnly)) {
+            qDebug() << "Failed to open budget file:" << file.errorString();
+            return false;
+        }
+
+        qDebug() << "Successfully opened budget file";
+        QByteArray fileData = file.readAll();
+        file.close();
+        
+        qDebug() << "File size:" << fileData.size() << "bytes";
+
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(fileData, &parseError);
+
+        if (parseError.error != QJsonParseError::NoError) {
+            qDebug() << "JSON parse error:" << parseError.errorString() 
+                     << "at offset" << parseError.offset;
+            return false;
+        }
+
+        // Load the budget data
+        QJsonObject budgetObj = doc.object();
+        if (budgetObj.isEmpty()) {
+            qDebug() << "Parsed JSON object is empty";
+            return false;
+        }
+        
+        qDebug() << "JSON contains" << budgetObj.keys().size() << "keys:" << budgetObj.keys();
+        
+        try {
+            getJSONBudget(budgetObj);
+            
+            // Update UI to reflect loaded data
+            if (budgetPeriodIndex >= 0 && budgetPeriodIndex < budgets.size()) {
+                qDebug() << "Calling changeBudgetPage() after loading";
+                changeBudgetPage();
+            }
+            
+            qDebug() << "Successfully loaded budget data for user:" << userId;
+            return true;
+        } catch (const std::exception& e) {
+            qDebug() << "Exception loading budget data:" << e.what();
+            return false;
+        } catch (...) {
+            qDebug() << "Unknown exception loading budget data";
+            return false;
+        }
+    } catch (const std::exception& e) {
+        qDebug() << "Exception in loadBudgetData function:" << e.what();
+        return false;
+    } catch (...) {
+        qDebug() << "Unknown exception in loadBudgetData function";
+        return false;
     }
 }

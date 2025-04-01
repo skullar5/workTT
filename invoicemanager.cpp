@@ -49,7 +49,9 @@ InvoiceManager::InvoiceManager(QWidget* parent)
     customerNameEdit = new QLineEdit();
     customerAddressEdit = new QLineEdit();
     amountEdit = new QLineEdit();
-    dueDateEdit = new QLineEdit("YYYY-MM-DD");
+    dueDateEdit = new QLineEdit();
+    dueDateEdit->setPlaceholderText("YYYY-MM-DD");
+
 
     formLayout->addRow("Customer Name*", customerNameEdit);
     formLayout->addRow("Customer Address*", customerAddressEdit);

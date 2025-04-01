@@ -7,6 +7,8 @@ Note:
 .cpp, .h, csv files are in work/work/test
 data subfolder contains all json files to save and load the data
 
+Please navigate to work/work/test
+
 
 First install visual studio: https://visualstudio.microsoft.com/downloads/ 
 

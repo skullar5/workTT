@@ -98,7 +98,7 @@ void LoginPage::handleLogin() {
 
     std::cout << "Attempting login for user: " << id.toStdString() << std::endl;
 
-    bool success = authSystem->authenticateUser(id, this);
+    bool success = authSystem->authenticateUser(id);
 
     if (authSystem->isAccountLocked(id)) {
         showLockDialog();

@@ -1,0 +1,26 @@
+[
+    {
+        "amount": 50,
+        "customerAddress": "904 evens pond ",
+        "customerName": "Simran",
+        "dueDate": "2025-03-30",
+        "invoiceID": 6,
+        "status": "Completed"
+    },
+    {
+        "amount": 30,
+        "customerAddress": "34 Evergreen St",
+        "customerName": "Samantha",
+        "dueDate": "2025-03-30",
+        "invoiceID": 3,
+        "status": "Pending"
+    },
+    {
+        "amount": 20,
+        "customerAddress": "12 Walkwood Rd",
+        "customerName": "Abby",
+        "dueDate": "2023-08-13",
+        "invoiceID": 3,
+        "status": "Completed"
+    }
+]

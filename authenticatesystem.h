@@ -46,7 +46,7 @@ public:
      * @return True if authentication is successful, false otherwise.
      */
      //bool authenticateUser(const QString& userID);
-    bool authenticateUser(const QString& userID, QWidget* parent);
+    bool authenticateUser(const QString& userID);
 
     /**
      * @brief Locks a user's account after too many failed login attempts.
@@ -56,7 +56,7 @@ public:
      * @param userID The ID of the user whose account will be locked.
      */
      //void lockAccount(const QString& userID);
-    void lockAccount(const QString& userID, QWidget* parent);
+    void lockAccount(const QString& userID);
 
     /**
      * @brief Logs out a user by removing them from the active users list.
@@ -98,8 +98,9 @@ public:
      */
     bool isAccountLocked(const QString& userID);
 
-    void saveUsersToFile();
-    void loadUsersFromFile();
+    bool saveUsersToFile();
+    bool loadUsersFromFile();
+
 };
 
 #endif

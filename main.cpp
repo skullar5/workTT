@@ -34,7 +34,10 @@
 #include "mainwindow.h"
 #include "invoicemanager.h"
 #include <QTextBrowser>
-
+#include <QDir>
+#include <QCoreApplication>
+#include <QStandardPaths>
+#include <QDebug>
 
 /**
  * @brief Constructor for MainWindow.
@@ -251,22 +254,22 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
     faqText->setReadOnly(true);
     faqText->setText(
         "Q: How do I access the dashboard?\n"
-        "A: Log in and click the 'Dashboard Overview' tab in the main menu.\n\n"
+        "A: Log in and click the 'Dashboard' tab in the main menu.\n\n"
 
         "Q: How do I generate financial reports?\n"
-        "A: Go to the 'Financials' tab, select the Generate button for the corresponding report.\n\n"
+        "A: Go to the 'Financials' tab, choose a report type, set the date range, and click 'Generate.'\n\n"
 
         "Q: How do I add a new transaction?\n"
         "A: Go to the 'Cashflow Tracking' tab and click 'Add Transaction.'\n\n"
 
         "Q: How do I create a budget?\n"
-        "A: Go to the 'Budget Planner' tab, click 'Add Expense', choose a budget period, and set your category and amount.\n\n"
+        "A: Go to the 'Budget Planner' tab, click 'New Budget', choose a period, and set your category and amount.\n\n"
 
         "Q: How do I update inventory?\n"
         "A: Go to the 'Inventory' tab, select an item to edit its quantity or click 'Add Item' to add a new product.\n\n"
 
         "Q: How do I manage invoices?\n"
-        "A: Click the 'Billing and Invoice' tab, then use '➕ Create Invoice' to create one, or update/delete existing invoices.\n\n"
+        "A: Click the 'Billing and Invoice' tab, then use 'New Invoice' to create one, or update/delete existing invoices.\n\n"
 
         "Q: Can I use different currencies?\n"
         "A: Yes! Choose your preferred currency during transaction entry. Real-time rates are applied automatically.\n"
@@ -275,38 +278,30 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
     faqLayout->addWidget(faqText);
 
     // User Guide Section
-    // User Guide Section
     QGroupBox* userGuideBox = new QGroupBox("📘 User Guide");
-    QHBoxLayout* userGuideLayout = new QHBoxLayout(userGuideBox);  // 👈 Horizontal layout for side-by-side
+    QVBoxLayout* userGuideLayout = new QVBoxLayout();
 
-    // 👉 Left-side guide: Dashboard, Budgeting, Financials
-    QString leftGuideHtml = R"(
+    QString userGuideText = R"(
 <b>Dashboard Overview</b><br>
 <i>Introduction:</i> View a summary of financials, inventory, and monthly reports.<br>
 <i>How to Use:</i><br>
 • Go to the 'Dashboard' tab.<br>
-• View the financial graphs and inventory table via the edit inventory button.<br>
+• View the financial graph and inventory table.<br>
 • Click a revenue cell to edit, then click 'Update Dashboard'.<br><br>
 
 <b>Budgeting Page</b><br>
 <i>Introduction:</i> Manage budgets and control overspending.<br>
 <i>How to Use:</i><br>
-• Click 'Add Expenses'.<br>
+• Click 'New Budget'.<br>
 • Enter category, period, and amount.<br>
 • Add expenses and receive warnings if over budget.<br><br>
 
 <b>Financials Page</b><br>
 <i>Introduction:</i> Generate financial reports with one click.<br>
 <i>How to Use:</i><br>
+• Select a report type.<br>
 • Click 'Generate' to export a CSV report.<br><br>
-)";
 
-    QTextBrowser* leftGuideBrowser = new QTextBrowser();
-    leftGuideBrowser->setHtml(leftGuideHtml);
-    leftGuideBrowser->setMinimumSize(400, 400);
-
-    // 👉 Right-side guide: Inventory, Billing, Multi-Currency
-    QString rightGuideHtml = R"(
 <b>Inventory Page</b><br>
 <i>Introduction:</i> Track product stock and get low-stock alerts.<br>
 <i>How to Use:</i><br>
@@ -327,14 +322,12 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
 • Select the currency and convert in real-time.<br>
 )";
 
-    QTextBrowser* rightGuideBrowser = new QTextBrowser();
-    rightGuideBrowser->setHtml(rightGuideHtml);
-    rightGuideBrowser->setMinimumSize(400, 400);
+    QTextBrowser* userGuideBrowser = new QTextBrowser();
+    userGuideBrowser->setHtml(userGuideText);
+    userGuideBrowser->setMinimumHeight(400);  // Optional: Adjust height as needed
 
-    // Add both side-by-side
-    userGuideLayout->addWidget(leftGuideBrowser);
-    userGuideLayout->addWidget(rightGuideBrowser);
-
+    userGuideLayout->addWidget(userGuideBrowser);
+    userGuideBox->setLayout(userGuideLayout);
 
 
     // Add FAQ and User Guide into Help
@@ -348,30 +341,21 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
 
 
     QGroupBox* externalLinksBox = new QGroupBox("🌐 External Resources");
-    QHBoxLayout* externalLayout = new QHBoxLayout(externalLinksBox);  // 👈 Use HBox for side-by-side layout
+    QVBoxLayout* externalLayout = new QVBoxLayout();
 
-    // Widget 1: Cashflow, Budgeting, Financial Reports
-    QString financeLinksHtml = R"(
+    QString externalLinksHtml = R"(
 <b>💸 Cashflow Tracking:</b><br>
-• <a href='https://www.investopedia.com/terms/c/cashflow.asp'>What is Cash Flow? – Investopedia</a><br>
+• <a href='https://www.investopedia.com/terms/c/cash-flow.asp'>What is Cash Flow? – Investopedia</a><br>
 • <a href='https://quickbooks.intuit.com/ca/resources/cash-flow/'>Cash Flow Management – QuickBooks Canada</a><br><br>
 
 <b>📊 Budgeting:</b><br>
-• <a href='https://itools-ioutils.fcac-acfc.gc.ca/BP-PB/budget-planner'>Government of Canada: Budgeting Tools</a><br>
+• <a href='https://www.canada.ca/en/financial-consumer-agency/services/budget.html'>Government of Canada: Budgeting Tools</a><br>
 • <a href='https://www.mint.com/how-to-budget'>How to Create a Budget – Mint</a><br><br>
 
 <b>📈 Financial Reports:</b><br>
 • <a href='https://www.investopedia.com/terms/f/financial-statements.asp'>Types of Financial Reports – Investopedia</a><br>
 • <a href='https://corporatefinanceinstitute.com/resources/accounting/balance-sheet/'>Understanding Balance Sheets – CFI</a><br><br>
-)";
 
-    QTextBrowser* financeLinksBrowser = new QTextBrowser();
-    financeLinksBrowser->setOpenExternalLinks(true);
-    financeLinksBrowser->setHtml(financeLinksHtml);
-    financeLinksBrowser->setMinimumSize(400, 200);
-
-    // Widget 2: Billing and Transactions
-    QString billingLinksHtml = R"(
 <b>🧾 Billing & Invoicing:</b><br>
 • <a href='https://quickbooks.intuit.com/r/invoicing/what-is-an-invoice'>What is an Invoice? – QuickBooks</a><br>
 • <a href='https://www.freshbooks.com/en-ca/invoice-templates'>Free Invoice Templates – FreshBooks</a><br><br>
@@ -381,16 +365,13 @@ MainWindow::MainWindow(AuthenticateSystem* authSystem, QWidget* parent)
 • <a href='https://www.xe.com/currencycharts/'>Currency Charts & History – XE</a><br>
 )";
 
-    QTextBrowser* billingLinksBrowser = new QTextBrowser();
-    billingLinksBrowser->setOpenExternalLinks(true);
-    billingLinksBrowser->setHtml(billingLinksHtml);
-    billingLinksBrowser->setMinimumSize(400, 200);
+    QTextBrowser* externalBrowser = new QTextBrowser();
+    externalBrowser->setOpenExternalLinks(true);
+    externalBrowser->setHtml(externalLinksHtml);
+    externalBrowser->setMinimumHeight(300);
 
-    // Add both browsers side by side
-    externalLayout->addWidget(financeLinksBrowser);
-    externalLayout->addWidget(billingLinksBrowser);
-
-
+    externalLayout->addWidget(externalBrowser);
+    externalLinksBox->setLayout(externalLayout);
 
 
     // Add to help layout
@@ -1011,6 +992,7 @@ void MainWindow::resizeEvent(QResizeEvent* event) {
 void MainWindow::saveTransactions() {
     if (currentUserId.isEmpty()) return;
 
+    // Create JSON data
     QJsonArray transactionsArray;
     std::vector<DataEntry> transactions = cashflowTracking.getAllDataEntries();
     for (const auto& entry : transactions) {
@@ -1020,34 +1002,80 @@ void MainWindow::saveTransactions() {
         obj["seller"] = QString::fromStdString(entry.seller);
         obj["buyer"] = QString::fromStdString(entry.buyer);
         obj["merchandise"] = QString::fromStdString(entry.merchandise);
-        obj["cost"] = QString::number(entry.cost, 'f', 2); // 👈 formatted
+        obj["cost"] = QString::number(entry.cost, 'f', 2);
         obj["currency"] = QString::fromStdString(entry.currency);
         obj["category"] = QString::fromStdString(entry.category);
         transactionsArray.append(obj);
     }
 
-
     QJsonObject root;
     root["transactions"] = transactionsArray;
 
-    QFile file("data/" + currentUserId + "_transactions.json");
+    // Use a consistent location across computers - AppDataLocation is platform-specific
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/BusinessManagementSystem/data";
+
+    // Ensure data directory exists
+    QDir dir;
+    if (!dir.exists(dataPath)) {
+        bool created = dir.mkpath(dataPath);
+        if (!created) {
+            qDebug() << "Failed to create data directory at:" << dataPath;
+            return;
+        }
+    }
+
+    // Save the file
+    QString filePath = dataPath + "/" + currentUserId + "_transactions.json";
+    QFile file(filePath);
+
     if (file.open(QIODevice::WriteOnly)) {
         file.write(QJsonDocument(root).toJson());
         file.close();
+        qDebug() << "Successfully saved" << transactions.size() << "transactions to:" << filePath;
+    }
+    else {
+        qDebug() << "Failed to save transactions. Cannot open file:" << filePath;
+        qDebug() << "Error:" << file.errorString();
     }
 }
+
 void MainWindow::loadTransactions(const QString& userId) {
-    QFile file("data/" + userId + "_transactions.json");
-    if (!file.open(QIODevice::ReadOnly)) return;
+    // Use the same location as in saveTransactions
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/BusinessManagementSystem/data";
 
-    // Clear existing data in both the table and the CashflowTracking object
+    QString filePath = dataPath + "/" + userId + "_transactions.json";
+    QFile file(filePath);
+
+    qDebug() << "Attempting to load transactions from:" << filePath;
+
+    if (!file.exists()) {
+        qDebug() << "Transaction file does not exist for user:" << userId;
+        return;
+    }
+
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open transaction file:" << file.errorString();
+        return;
+    }
+
+    // Clear existing data first to prevent duplication
     tableWidget->setRowCount(0);
-    cashflowTracking.clear();  // Clear the cashflow tracking data before loading
+    cashflowTracking.clear();
 
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QByteArray fileData = file.readAll();
     file.close();
 
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(fileData, &parseError);
+
+    if (parseError.error != QJsonParseError::NoError) {
+        qDebug() << "JSON parse error:" << parseError.errorString();
+        return;
+    }
+
     QJsonArray transactionsArray = doc["transactions"].toArray();
+    qDebug() << "Loaded" << transactionsArray.size() << "transactions";
+
     for (const QJsonValue& val : transactionsArray) {
         QJsonObject obj = val.toObject();
         int row = tableWidget->rowCount();
